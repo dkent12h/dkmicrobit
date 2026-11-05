@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>빛의 합성 실험 · DK microbit</title>
+<meta name="description" content="마이크로비트로 빛의 합성 실험 장치를 만들어 보는 디지털교재">
+<meta name="theme-color" content="#eeeef1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0b0b10;--muted:#6a6a76;--line:rgba(11,11,16,.16);--acc:#7c4dff;color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;overflow:hidden;word-break:keep-all;overflow-wrap:break-word;color:var(--ink);
+  background:radial-gradient(120% 90% at 72% 18%,#fbfbfc 0%,#ececf1 58%,#dedee8 100%) fixed;
+  font-family:"Inter Tight","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;display:flex;flex-direction:column}
+a{color:inherit}
+button{font:inherit;cursor:pointer}
+
+/* 위쪽 줄 */
+header{flex:none;height:64px;display:flex;justify-content:space-between;align-items:center;padding:0 clamp(16px,3vw,40px)}
+.brand{display:inline-flex;align-items:center;gap:12px;font-weight:800;font-size:20px;letter-spacing:-.02em;text-decoration:none}
+.mini{width:28px;height:28px;border-radius:8px;background:#111;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:6px}
+.mini i{border-radius:50%;background:#3b1616}.mini i.on{background:#ff3b30}
+.pill{border:1.5px solid var(--ink);border-radius:999px;padding:9px 18px;font-weight:700;font-size:14px;background:transparent;color:var(--ink);transition:background .25s,color .25s}
+.pill:hover:not(:disabled){background:var(--ink);color:#fff}
+.pill:disabled{opacity:.35;cursor:default}
+.pill.solid{background:var(--ink);color:#fff}
+.pill.solid:hover:not(:disabled){background:var(--acc);border-color:var(--acc)}
+
+/* 책 무대 */
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.book{position:relative;perspective:2600px}
+.leaf{position:absolute;top:0;height:100%;width:50%;overflow:hidden}
+.leaf.left{left:0}.leaf.right{left:50%}
+.book.one .leaf.right{left:0;width:100%}.book.one .leaf.left,.book.one .flip{display:none}
+.page{position:absolute;inset:0;background:rgba(255,255,255,.82);border:1.5px solid var(--line);padding:calc(var(--u)*5.2) calc(var(--u)*6) calc(var(--u)*7.2);display:flex;flex-direction:column;overflow:hidden;
+  font-size:calc(var(--u)*3.15);line-height:1.55}
+.leaf.left .page,.face.l .page{border-radius:calc(var(--u)*4) 0 0 calc(var(--u)*4);border-right-color:rgba(11,11,16,.08)}
+.leaf.right .page,.face.r .page{border-radius:0 calc(var(--u)*4) calc(var(--u)*4) 0;border-left-color:rgba(11,11,16,.08)}
+.book.one .leaf.right .page{border-radius:calc(var(--u)*4)}
+.leaf.left .page::after,.face.l .page::after{content:"";position:absolute;top:0;right:0;bottom:0;width:calc(var(--u)*7);background:linear-gradient(90deg,transparent,rgba(11,11,16,.10));pointer-events:none}
+.leaf.right .page::after,.face.r .page::after{content:"";position:absolute;top:0;left:0;bottom:0;width:calc(var(--u)*7);background:linear-gradient(270deg,transparent,rgba(11,11,16,.10));pointer-events:none}
+.book.one .leaf.right .page::after{display:none}
+.book{filter:drop-shadow(0 30px 40px rgba(30,20,70,.18))}
+.flip{position:absolute;top:0;height:100%;width:50%;transform-style:preserve-3d;display:none;will-change:transform}
+.flip.on{display:block}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.face.back{transform:rotateY(180deg)}
+.pfoot{position:absolute;left:calc(var(--u)*6);right:calc(var(--u)*6);bottom:calc(var(--u)*3);display:flex;justify-content:space-between;font-size:calc(var(--u)*2.3);font-weight:700;color:var(--muted)}
+.leaf.left .pfoot,.face.l .pfoot{flex-direction:row}
+.leaf.right .pfoot,.face.r .pfoot{flex-direction:row-reverse}
+
+/* 페이지 내용 */
+.eb{font-size:calc(var(--u)*2.6);font-weight:800;color:var(--c,var(--acc));letter-spacing:.01em;margin:0 0 calc(var(--u)*1.6)}
+.ttl{margin:0;font-size:calc(var(--u)*5.4);line-height:1.12;letter-spacing:-.045em;font-weight:800;text-wrap:balance}
+.body{margin-top:calc(var(--u)*3.4);display:flex;flex-direction:column;gap:calc(var(--u)*2.1);min-height:0;flex:1}
+.body p{margin:0}
+.bl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:calc(var(--u)*1.9)}
+.bl li{position:relative;padding-left:calc(var(--u)*4.4);font-weight:500}
+.bl li::before{content:"";position:absolute;left:calc(var(--u)*.6);top:calc(var(--u)*1.55);width:calc(var(--u)*1.7);height:calc(var(--u)*1.7);border-radius:50%;background:var(--c,var(--acc))}
+.nt{list-style:none;margin:0;padding:calc(var(--u)*2.6) calc(var(--u)*3);background:rgba(11,11,16,.05);border-radius:calc(var(--u)*2.6);display:flex;flex-direction:column;gap:calc(var(--u)*1.4);font-size:calc(var(--u)*2.8);color:#454552;font-weight:500}
+.nt li{position:relative;padding-left:calc(var(--u)*2.8)}
+.nt li::before{content:"※";position:absolute;left:0;color:var(--c,var(--acc));font-weight:800}
+.stm{font-size:calc(var(--u)*4.1);line-height:1.38;font-weight:700;letter-spacing:-.03em}
+.nums{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:calc(var(--u)*2.6)}
+.nums li{display:flex;gap:calc(var(--u)*2.8);align-items:flex-start;font-weight:500;font-size:calc(var(--u)*3.25)}
+.nums .n{flex:none;width:calc(var(--u)*6.4);height:calc(var(--u)*6.4);border-radius:50%;background:var(--c,var(--acc));color:#fff;display:grid;place-items:center;font-weight:800;font-size:calc(var(--u)*3.2);margin-top:calc(var(--u)*-.4)}
+.stepno{width:calc(var(--u)*11);height:calc(var(--u)*11);border-radius:50%;background:var(--c,var(--acc));color:#fff;display:grid;place-items:center;font-weight:800;font-size:calc(var(--u)*5.6);letter-spacing:-.04em;margin-bottom:calc(var(--u)*3)}
+.parts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2.2);counter-reset:p;align-content:start}
+.parts li{counter-increment:p;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:calc(var(--u)*1.6);padding:calc(var(--u)*2.2) calc(var(--u)*2) calc(var(--u)*2.4);border:1.5px solid var(--line);border-radius:calc(var(--u)*3);font-size:calc(var(--u)*3.3);line-height:1.3;font-weight:700;background:rgba(255,255,255,.8);text-align:center;word-break:keep-all}
+.parts li::before{content:counter(p);position:absolute;left:calc(var(--u)*1.8);top:calc(var(--u)*1.8);width:calc(var(--u)*5.2);height:calc(var(--u)*5.2);border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:calc(var(--u)*2.8);font-weight:800;z-index:1}
+.parts .th{order:-1;margin:0;display:flex;gap:calc(var(--u)*1.4);justify-content:center;align-items:center;width:100%;height:calc(var(--u)*24)}
+.parts .th img{height:100%;width:auto;max-width:100%;min-width:0;object-fit:contain;border-radius:calc(var(--u)*1.6);background:#fff}
+.parts .th img:only-child{max-width:100%}
+.parts .th:has(img+img) img{max-width:48%}
+.parts.many .th,.parts.five .th{height:calc(var(--u)*17)}
+.chips{display:flex;flex-wrap:wrap;gap:calc(var(--u)*1.6);margin-top:calc(var(--u)*1)}
+.chip{display:inline-flex;align-items:center;gap:calc(var(--u)*1.2);border:1.5px solid var(--c,var(--acc));color:var(--c,var(--acc));border-radius:999px;padding:calc(var(--u)*1.3) calc(var(--u)*3.2);font-weight:800;font-size:calc(var(--u)*2.9);text-decoration:none;background:transparent}
+a.chip{background:var(--c,var(--acc));color:#fff}
+.tag{align-self:flex-start;font-size:calc(var(--u)*2.5);font-weight:800;background:rgba(11,11,16,.07);border-radius:999px;padding:calc(var(--u)*.7) calc(var(--u)*2.4)}
+.lk{display:flex;flex-direction:column;gap:calc(var(--u)*2)}
+.lk a{display:block;border:1.5px solid var(--ink);border-radius:calc(var(--u)*3);padding:calc(var(--u)*2.6) calc(var(--u)*3.2);text-decoration:none;transition:background .25s,color .25s}
+.lk a:hover{background:var(--ink);color:#fff}
+.lk b{display:block;font-size:calc(var(--u)*3.4)}
+.lk span{display:block;font-size:calc(var(--u)*2.3);font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;opacity:.7;margin-top:calc(var(--u)*.6)}
+.qr{width:calc(var(--u)*24);height:calc(var(--u)*24);padding:calc(var(--u)*2);background:#fff;border:1.5px solid var(--line);border-radius:calc(var(--u)*2.4)}
+.qr svg{width:100%;height:100%;display:block}
+.fig{margin:0;border-radius:calc(var(--u)*2.6);overflow:hidden;border:1.5px solid var(--line);background:#fff}
+.fig img,.fig video,.fig iframe{display:block;width:100%;height:auto;border:0;aspect-ratio:16/9;object-fit:contain}
+.body{flex:1}
+.fig{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;background:transparent;border:0}
+.fig img{width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:auto;object-fit:contain;border-radius:calc(var(--u)*2);border:1.5px solid var(--line);background:#fff}
+.fig.svg{flex:none;background:#fff;border:1.5px solid var(--line);border-radius:calc(var(--u)*2.4);padding:calc(var(--u)*2.4);margin-top:calc(var(--u)*1)}
+.fig.svg svg{width:100%;height:auto;display:block}
+.fig.svg.dark{flex:1 1 0;min-height:0;background:transparent;border:0;padding:0;display:flex;align-items:center;justify-content:center}
+.fig.svg.dark svg{height:100%;width:auto;max-width:100%;max-height:100%}
+.fig.vid{flex:none;width:100%;border:0}
+.fig.vid iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:calc(var(--u)*2.4);background:#000}
+.play{position:relative;display:block;width:100%;padding:0;border:0;border-radius:calc(var(--u)*2.4);overflow:hidden;background:#111;aspect-ratio:16/9}
+.play img{width:100%;height:100%;max-height:none;object-fit:cover;border:0;border-radius:0;display:block;opacity:.85}
+.tri{position:absolute;left:50%;top:50%;width:calc(var(--u)*13);height:calc(var(--u)*13);margin:calc(var(--u)*-6.5) 0 0 calc(var(--u)*-6.5);border-radius:50%;background:var(--c,#ff3b30);box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.tri::after{content:"";position:absolute;left:38%;top:28%;border-style:solid;border-width:calc(var(--u)*3.6) 0 calc(var(--u)*3.6) calc(var(--u)*5.6);border-color:transparent transparent transparent #fff}
+a.tag{text-decoration:none;color:var(--ink)}
+.page.divider .fig{flex:none;margin-bottom:calc(var(--u)*4)}
+.page.divider .fig img{max-height:calc(var(--u)*50)}
+.big{font-size:calc(var(--u)*10.5);font-weight:800;letter-spacing:-.06em;line-height:1.02;text-wrap:balance}
+.para{font-size:calc(var(--u)*3.45);line-height:1.72;font-weight:500;color:#25252d;text-wrap:pretty}
+
+/* 표지 · 장 표지 */
+.page.cover{background:#0b0b10;color:#fff;border-color:#0b0b10}
+.page.cover .pfoot{color:rgba(255,255,255,.55)}
+.page.cover::after{display:none}
+.rgb{position:relative;flex:1;min-height:0;margin:calc(var(--u)*2) 0}
+.rgb i{position:absolute;width:55%;aspect-ratio:1;border-radius:50%;mix-blend-mode:screen}
+.rgb i:nth-child(1){background:#ff2a2a;left:8%;top:6%}
+.rgb i:nth-child(2){background:#1fe05a;right:8%;top:6%}
+.rgb i:nth-child(3){background:#2a5bff;left:22.5%;bottom:4%}
+.cv-t{font-size:calc(var(--u)*9.5);font-weight:800;letter-spacing:-.06em;line-height:1}
+.cv-s{font-size:calc(var(--u)*3.6);font-weight:700;opacity:.7;margin-top:calc(var(--u)*1.6)}
+.cv-e{font-size:calc(var(--u)*2.8);font-weight:700;opacity:.65;margin-bottom:calc(var(--u)*2)}
+.page.divider{justify-content:flex-end}
+.page.divider .no{font-size:calc(var(--u)*3.2);font-weight:800;color:var(--c);margin-bottom:calc(var(--u)*2)}
+.page.divider .bar{width:calc(var(--u)*14);height:calc(var(--u)*1.6);border-radius:99px;background:var(--c);margin-bottom:calc(var(--u)*4)}
+.page.blank{background:transparent;border-color:transparent;box-shadow:none}
+.page.blank::after{display:none}
+.endp{justify-content:center;align-items:flex-start;gap:calc(var(--u)*3)}
+
+/* 아래 조작줄 */
+.ctrl{flex:none;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px clamp(12px,3vw,40px) calc(14px + env(safe-area-inset-bottom));min-height:68px}
+.prog{flex:1;max-width:560px;display:flex;flex-direction:column;gap:4px;align-items:center}
+.prog small{font-weight:800;font-size:13px;color:var(--muted);letter-spacing:.02em}
+input[type=range]{width:100%;accent-color:var(--ink);height:18px;margin:0}
+
+/* 목차 (왼쪽 서랍) */
+.toc{position:fixed;inset:0;z-index:50;display:none;background:rgba(11,11,16,.32)}
+.toc.on{display:block}
+.toc-in{position:absolute;left:0;top:0;bottom:0;width:min(460px,92vw);background:#f4f4f8;overflow:auto;padding:22px clamp(18px,3vw,32px) 40px;box-shadow:12px 0 50px rgba(0,0,0,.22);animation:drawer .28s cubic-bezier(.3,.7,.2,1)}
+@keyframes drawer{from{transform:translateX(-40px);opacity:0}to{transform:none;opacity:1}}
+.toc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.toc h3{font-size:clamp(30px,4vw,42px);letter-spacing:-.05em;margin:0;font-weight:800}
+.toc .ch{border-bottom:1.5px solid var(--line)}
+.toc .chap{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:none;border:0;padding:17px 6px;font-size:clamp(22px,2.3vw,27px);font-weight:800;letter-spacing:-.04em;color:var(--ink)}
+.toc .chap::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--c);flex:none}
+.toc .chap .rg{margin-left:auto;font-size:14px;color:var(--muted);font-weight:700}
+.toc .chap .chev{width:10px;height:10px;border-right:2.5px solid var(--ink);border-bottom:2.5px solid var(--ink);transform:rotate(45deg);margin:-4px 4px 0 8px;transition:transform .2s;flex:none}
+.toc .ch.open .chap .chev{transform:rotate(225deg);margin-top:4px}
+.toc .chap:hover{background:rgba(11,11,16,.05)}
+.toc .ch ol{display:none;border-top:0;margin:0 0 12px 26px}
+.toc .ch.open ol{display:block}
+.toc ol{list-style:none;margin:0;padding:0;border-top:1.5px solid var(--line)}
+.toc li button{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:11px 10px;font-size:clamp(15px,1.4vw,16.5px);font-weight:600;letter-spacing:-.03em;color:var(--ink);border-radius:0}
+.toc li button:hover{background:rgba(11,11,16,.05)}
+.toc li button.cur{background:var(--c);color:#fff;border-radius:10px}
+.toc li button.cur .pg{color:rgba(255,255,255,.85)}
+.toc li .pg{margin-left:auto;font-size:14px;color:var(--muted);font-weight:700;flex:none}
+.tocbtn{position:fixed;left:clamp(10px,2vw,28px);top:50%;transform:translateY(-50%);z-index:20;width:54px;height:54px;border-radius:50%;border:1.5px solid var(--ink);background:rgba(255,255,255,.85);display:grid;place-items:center;color:var(--ink);transition:background .25s,color .25s;box-shadow:0 8px 24px rgba(30,20,70,.14)}
+.tocbtn:hover{background:var(--ink);color:#fff}
+.tocbtn svg{width:24px;height:24px}
+@media (max-width:900px){.tocbtn{top:auto;bottom:12px;left:10px;transform:none;width:46px;height:46px}.ctrl{padding-left:64px}}
+@media (prefers-reduced-motion:reduce){.flip{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="../" aria-label="DK microbit 처음으로">
+    <span class="mini" aria-hidden="true"><i></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i></i></span>
+    DK microbit
+  </a>
+  <button class="pill" id="btnToc" type="button">목차</button>
+</header>
+
+<div class="stage" id="stage">
+  <div class="book" id="book">
+    <div class="leaf left" id="L"></div>
+    <div class="leaf right" id="R"></div>
+    <div class="flip" id="F"><div class="face front" id="Ff"></div><div class="face back" id="Fb"></div></div>
+  </div>
+</div>
+
+<div class="ctrl">
+  <button class="pill" id="prev" type="button" aria-label="이전 페이지">← 이전</button>
+  <div class="prog"><small id="pos">1 / 1</small><input type="range" id="rng" min="1" max="1" value="1" aria-label="페이지 이동"></div>
+  <button class="pill solid" id="next" type="button" aria-label="다음 페이지">다음 →</button>
+</div>
+
+<button class="tocbtn" id="tocOpen" type="button" aria-label="목차 열기" title="목차"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+<div class="toc" id="toc" role="dialog" aria-label="목차">
+  <div class="toc-in"><div class="toc-hd"><h3>목차</h3><button class="pill" id="tocX" type="button">닫기 ✕</button></div><div id="tocList"></div></div>
+</div>
+
+<script>var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1})},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});</script>
+<script>
+"use strict";
+/* ============================================================
+   사진·영상·링크 넣는 곳 (페이지 번호 기준, 비워 두면 표시되지 않습니다)
+   MEDIA.img[페이지번호]   = "img/12.jpg"   (또는 여러 장: ["img/12a.jpg","img/12b.jpg"])
+   MEDIA.video[페이지번호] = "https://www.youtube.com/watch?v=..." 또는 "video/12.mp4"
+   MEDIA.links[페이지번호] = { "활동지": "https://...", "AR 보기": "https://..." }
+   ============================================================ */
+const MEDIA = {"img": {"2": ["img/2-1.png"], "6": ["img/6-1.png", "img/6-2.png", "img/6-3.png", "img/6-4.png"], "8": ["img/8-1.jpg"], "9": ["img/9-1.jpg"], "10": ["img/10-1.jpg"], "11": ["img/11-1.jpg"], "12": ["img/12-1.jpg"], "13": ["img/13-1.jpg"], "14": ["img/14-1.jpg"], "16": ["img/16-1.png", "img/16-2.png"], "17": ["img/17-1.png", "img/17-2.png"], "18": ["img/18-1.png"], "22": ["img/22-1.png", "img/22-2.png", "img/22-3.png", "img/22-4.png", "img/22-5.jpg", "img/22-6.png"], "24": ["img/24-1.jpg"], "25": ["img/25-1.jpg"], "26": ["img/26-1.jpg"], "27": ["img/27-1.jpg"], "28": ["img/28-1.jpg"], "29": ["img/29-1.jpg"], "30": ["img/30-1.jpg"], "31": ["img/31-1.jpg"], "32": ["img/32-1.jpg"], "33": ["img/33-1.jpg"], "34": ["img/34-1.jpg"], "35": ["img/35-1.jpg"], "36": ["img/36-1.jpg"], "37": ["img/37-1.jpg"], "38": ["img/38-1.jpg"], "39": ["img/39-1.jpg"], "40": ["img/40-1.jpg"], "42": ["img/42-1.png", "img/42-2.png"], "43": ["img/43-1.png", "img/43-2.png"], "44": ["img/44-1.png", "img/44-2.png"], "45": ["img/45-1.png", "img/45-2.png"], "46": ["img/46-1.png", "img/46-2.png"], "50": ["img/50-1.png", "img/50-2.png", "img/50-3.png", "img/50-4.png"], "52": ["img/52-1.jpg"], "53": ["img/53-1.jpg"], "54": ["img/54-1.jpg"], "55": ["img/55-1.jpg"], "56": ["img/56-1.jpg"], "57": ["img/57-1.jpg"], "58": ["img/58-1.jpg"], "59": ["img/59-1.jpg"], "60": ["img/60-1.jpg"], "62": ["img/62-1.png", "img/62-2.png"], "63": ["img/63-1.png", "img/63-2.png"], "64": ["img/64-1.png", "img/64-2.png"], "65": ["img/65-1.png", "img/65-2.png"], "66": ["img/66-1.png"], "67": ["img/67-1.png"], "71": ["img/71-1.png", "img/71-2.png", "img/71-3.png", "img/71-4.jpg", "img/71-5.png", "img/71-6.png"], "72": ["img/72-1.png"], "73": ["img/73-1.png"], "81": ["img/81-1.png"], "85": ["img/85-1.png"]}, "video": {"7": "https://www.youtube.com/watch?v=vg5zTE-2IwY", "15": "https://www.youtube.com/watch?v=cATzDy99m-Q", "19": "https://www.youtube.com/watch?v=CE6v7Jwn8oY", "23": "https://www.youtube.com/watch?v=0GDT1I6VI78", "41": "https://www.youtube.com/watch?v=KipnCy1NC4g", "47": "https://www.youtube.com/watch?v=0Ovkr7COrTk", "51": "https://www.youtube.com/watch?v=DSnNHI-uaRU", "61": "https://www.youtube.com/watch?v=Xfn-xir7vDE", "68": "https://www.youtube.com/watch?v=DCnkIlGoiU8", "79": "https://www.youtube.com/watch?v=T6R_jYj9nLw", "80": "https://www.youtube.com/watch?v=R92LrvuuSlw", "83": "https://www.youtube.com/watch?v=H38hJ8_PvsU"}, "links": {"4": {"활동지": "https://forms.gle/vUzGsJx4mjn7zkto7"}, "14": {"AR 보기": "https://edu.cospaces.io/VWA-BRM"}, "15": {"마이크로비트": "https://makecode.microbit.org/#"}, "40": {"AR 보기": "https://edu.cospaces.io/TGW-ESB"}, "41": {"마이크로비트": "https://makecode.microbit.org/#"}, "60": {"AR 보기": "https://edu.cospaces.io/NVZ-ZJK"}, "61": {"마이크로비트": "https://makecode.microbit.org/#"}, "74": {"활동지": "https://forms.gle/LChfKnuyZhKeuAMm9"}, "75": {"마이크로비트": "https://makecode.microbit.org/#"}, "77": {"공유하기": "https://padlet.com/dkent12h/2023-02-nxo0rr0tc3cg"}, "79": {"AR 보기": "https://edu.cospaces.io/HTH-MZK"}, "84": {"활동지": "https://forms.gle/uRrA7p12z5GRF4ZG7"}, "88": {"활동지": "https://forms.gle/MpuzR9om8oTUjy817"}, "89": {"성찰일지": "https://forms.gle/LqTtcBf81Pt2MtF97"}}};
+const ILLU = {
+86: `<svg viewBox="0 0 620 250" role="img" aria-label="화면을 확대하면 빨강·초록·파랑 점이 보이고, 빛이 합성되어 한 색으로 보입니다">
+<g font-family="inherit" font-weight="800" text-anchor="middle" fill="#25252d">
+<rect x="14" y="46" width="150" height="104" rx="12" fill="#14141c"/>
+<rect x="22" y="54" width="134" height="88" rx="6" fill="#ffd54a"/><rect x="22" y="54" width="60" height="88" rx="6" fill="#ff5a4d"/><rect x="82" y="54" width="40" height="88" fill="#34c759"/><rect x="122" y="54" width="34" height="88" rx="6" fill="#2f6bff"/>
+<rect x="76" y="154" width="26" height="8" fill="#14141c"/><rect x="58" y="162" width="62" height="7" rx="3.5" fill="#14141c"/>
+<text x="89" y="196" font-size="16">화면</text>
+<circle cx="132" cy="100" r="18" fill="none" stroke="#7c4dff" stroke-width="4"/><path d="M146 114l16 16" stroke="#7c4dff" stroke-width="6" stroke-linecap="round"/>
+<path d="M176 100h40" stroke="#25252d" stroke-width="4" stroke-linecap="round"/><path d="M208 90l12 10-12 10" fill="none" stroke="#25252d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="232" y="30" width="196" height="136" rx="12" fill="#0b0b10"/>
+<g>
+<g id="px"><rect x="246" y="44" width="14" height="32" fill="#ff2a2a"/><rect x="262" y="44" width="14" height="32" fill="#1fe05a"/><rect x="278" y="44" width="14" height="32" fill="#2a5bff"/></g>
+<use href="#px" x="58"/><use href="#px" x="116"/>
+<use href="#px" y="40"/><use href="#px" x="58" y="40"/><use href="#px" x="116" y="40"/>
+<g opacity=".55"><rect x="246" y="124" width="14" height="32" fill="#ff2a2a"/><rect x="262" y="124" width="14" height="32" fill="#1fe05a"/><rect x="278" y="124" width="14" height="32" fill="#2a5bff"/><rect x="304" y="124" width="14" height="32" fill="#ff2a2a"/><rect x="320" y="124" width="14" height="32" fill="#1fe05a"/><rect x="336" y="124" width="14" height="32" fill="#2a5bff"/><rect x="362" y="124" width="14" height="32" fill="#ff2a2a"/><rect x="378" y="124" width="14" height="32" fill="#1fe05a"/><rect x="394" y="124" width="14" height="32" fill="#2a5bff"/></g>
+</g>
+<text x="330" y="196" font-size="16">빨강·초록·파랑 점 = 화소</text>
+<path d="M440 100h40" stroke="#25252d" stroke-width="4" stroke-linecap="round"/><path d="M472 90l12 10-12 10" fill="none" stroke="#25252d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="552" cy="100" r="52" fill="#ffe34a" stroke="#25252d" stroke-width="3"/>
+<text x="552" y="196" font-size="16">빛이 합성되어</text><text x="552" y="218" font-size="16">한 색으로 보임</text>
+</g></svg>`,
+87: `<svg viewBox="0 0 400 356" role="img" aria-label="빛의 삼원색 합성: 빨강+초록=노랑, 초록+파랑=청록, 빨강+파랑=자홍, 세 색을 모두 합치면 흰색">
+<defs><filter id="gl" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+<radialGradient id="bg" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#1c1c26"/><stop offset="1" stop-color="#08080c"/></radialGradient></defs>
+<rect width="400" height="356" rx="28" fill="url(#bg)"/>
+<g style="isolation:isolate">
+<g filter="url(#gl)" opacity=".5"><circle style="mix-blend-mode:screen" cx="152" cy="140" r="90" fill="#ff2d2d"/><circle style="mix-blend-mode:screen" cx="248" cy="140" r="90" fill="#19e35a"/><circle style="mix-blend-mode:screen" cx="200" cy="222" r="90" fill="#2d62ff"/></g>
+<g><circle style="mix-blend-mode:screen" cx="152" cy="140" r="90" fill="#ff1a1a"/><circle style="mix-blend-mode:screen" cx="248" cy="140" r="90" fill="#12e050"/><circle style="mix-blend-mode:screen" cx="200" cy="222" r="90" fill="#1f55ff"/></g>
+</g>
+<g font-family="inherit" font-weight="800" text-anchor="middle" font-size="15">
+<g fill="#fff"><text x="112" y="116" font-size="19">빨강</text><text x="288" y="116" font-size="19">초록</text><text x="200" y="278" font-size="19">파랑</text></g>
+<text x="200" y="104" fill="#1b1b22">노랑</text>
+<text x="154" y="200" fill="#fff">자홍</text>
+<text x="246" y="200" fill="#10202a">청록</text>
+<text x="200" y="166" fill="#14141c" font-size="17">흰색</text>
+<text x="200" y="340" fill="#cfd0dc" font-size="13" font-weight="700">빛의 삼원색을 합치면 모든 색을 만들 수 있어요</text>
+</g></svg>`
+};
+const PARTS = {6:[[0],[1],[2],[3]],22:[[0],[1],[2,3],[4],[5]],50:[[0],[1],[2],[3]],71:[[0],[1],[2],[3],[4],[5]]};
+
+const CHAPS = [
+  { n: "도입", c: "#7c4dff" },
+  { n: "LED 불켜기", c: "#ff3b30" },
+  { n: "가변저항 사용하기", c: "#16a34a" },
+  { n: "RGB-LED 불켜기", c: "#1e6bff" },
+  { n: "빛의 합성 장치 만들기", c: "#7c4dff" },
+  { n: "빛의 합성 실험하기", c: "#f59e0b" },
+  { n: "개념 정리하기", c: "#0d9488" },
+  { n: "평가하기", c: "#0b0b10" },
+  { n: "공유하기", c: "#7c4dff" }
+];
+
+/* 페이지 내용: 쪽 구분 ---  / 첫 줄: 종류|장|윗제목|제목|번호
+   줄 머리: "- " 목록, "* " 참고, "+ " 단추, ": " 문단, "1. " 번호, "@toc " 목차, "~ " 꼬리표, "L 이름|주소", "Q 주소" */
+const DATA = `
+cover|0|과학 코딩 · 마이크로비트|빛의 합성 실험|
+: 디지털교재
+---
+text|0|과학적 상황|TV화면을 확대하면 왜 알록달록한 모습이 보일까요?|
+@toc 시작하기
+---
+text|0|학습문제|이번 시간에 배울 것|
+- 빛의 삼원색을 이해하고, 빛의 합성 실험 장치를 이용하여 빛의 합성 원리를 이해할 수 있습니다.
+- 마이크로비트를 이용하여 빛의 합성 실험 장치를 만들 수 있습니다.
+---
+text|0|확인하기|아래의 문제를 풀어봅시다.|
+- 학습할 과학 주제와 관련하여 자신의 현재의 과학적 지식을 바탕으로 문제를 풀어봅시다.
+- 과학적 현상을 설명하기 어려울 경우에는 추측해서 문제를 풀어봅시다.
++ 활동지
+---
+divider|1|01|LED 불켜기|
+@toc LED 불켜기
+---
+parts|1|LED 불켜기 회로구성|필요한 부품|
+- 마이크로비트 1개
+- 확장보드 1개
+- LED 모듈 1개
+- 암-암 점퍼선 10Cm 3개
+---
+video|1|LED 불켜기 회로구성|영상 시청하기|
+: 다음 사항에 중점을 두고 영상을 시청 합니다.
+- 모듈의 IN, VCC, GND핀이 확장보드의 어떤 핀에 꽂히는 지 살펴봅니다.
++ 영상
+---
+step|1|LED 불켜기 회로 · 순서대로 따라하기|LED 모듈의 IN핀에 노란색 점퍼선을 연결합니다.|1
+* 보통 신호값은 노란색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* IN을 통해서 신호값이 LED 모듈로 입력이 됩니다.
+---
+step|1|LED 불켜기 회로 · 순서대로 따라하기|LED 모듈의 VCC핀에 빨간색 점퍼선을 연결합니다.|2
+* 보통 VCC는 빨간색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* VCC를 통해서 LED 모듈로 전기를 공급합니다.
+---
+step|1|LED 불켜기 회로 · 순서대로 따라하기|LED 모듈의 GND핀에 검은색 점퍼선을 연결합니다.|3
+* 보통 GND는 검은색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* GND를 통해서 LED 모듈로 전기를 공급합니다.
+---
+step|1|LED 불켜기 회로 · 순서대로 따라하기|확장보드의 11번핀에 LED 모듈의 IN핀에 연결되었던 노란색 점퍼선을 연결합니다.|4
+* 확장보드(마이크로비트)의 11번핀과 LED 모듈의 IN핀이 연결됩니다.
+* 코딩을 통해 입력한 신호값이 확장보드(마이크로비트)11번 핀을 통해 LED 모듈의 IN핀으로 전달되고, 신호값 만큼 LED의 불이 켜지게 됩니다.
+---
+step|1|LED 불켜기 회로 · 순서대로 따라하기|확장보드의 11번핀 아래의 V핀(빨간색핀)에 LED 모듈의 VCC핀에 연결되었던 빨간색 점퍼선을 연결합니다.|5
+* 확장보드(마이크로비트)의 V핀과 LED 모듈의 VCC핀이 연결됩니다.
+* LED 모듈에 전기를 공급해주기 위해, 배터리의 (+)에 연결하는 것과 같습니다.
+* V핀 어느 곳에 연결해도 상관없지만, 연결상태를 확인하기 쉽게 11번 핀 바로 아래의 V핀에 연결합니다.
+---
+step|1|LED 불켜기 회로 · 순서대로 따라하기|확장보드의 11번핀 아래의 G핀(검은색핀)에 LED 모듈의 GND핀에 연결되었던 검은색 점퍼선을 연결합니다.|6
+* 확장보드(마이크로비트)의 G핀과 LED 모듈의 GND핀이 연결됩니다.
+* LED 모듈에 전기를 공급해주기 위해, 배터리의 (-)에 연결하는 것과 같습니다.
+* G핀 어느 곳에 연결해도 상관없지만, 연결상태를 확인하기 쉽게 11번 핀 바로 아래의 G핀에 연결합니다.
+---
+done|1|LED 불켜기 회로|완성된 회로|
+: 회로가 위의 사진과 같이 잘 완성이 되었다면 다음 코딩 단계로 이동합니다.
++ AR 보기
+---
+video|1|LED 불켜기 코딩|영상 시청하기|
+: 다음 사항에 중점을 두고 영상을 시청 합니다.
+- 사용되는 블록의 역할이 무엇인지 생각합니다.
+- 블록에 사용되는 핀번호의 의미를 생각합니다.
+~ 마이크로비트
++ 영상
+---
+code|1|LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+1. 마이크로비트 블록 중에서 [고급-핀]을 클릭한다.
+2. [핀] 블록 중에서 아래의 [아날로그 값 출력] 블록을 드래그하여 [무한반복 실행] 블록 안으로 넣는다.
+---
+code|1|LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+3. 회로에서 LED 모듈을 연결한 확장보드의 핀번호로 변경한다.(앞의 예시에서는 확장보드의 11번 핀에 LED 모듈을 연결하였음)
+4. 아날로그 값을 0으로 입력한 후, 다운로드 버튼을 눌러 마이크로비트로 값을 전송한다. 다운로드가 완료된 후 LED 모듈의 빛의 밝기를 확인한다.
+---
+code|1|LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+5. 아날로그 값을 100, 1023 또는 다른 숫자를 입력한 후, 다운로드 버튼을 눌러 마이크로비트로 값을 전송한다. 다운로드가 완료된 후 LED 모듈의 빛의 밝기의 변화를 확인한다.
+---
+run|1|LED 불켜기 작동|작동 확인하기|
+- 컴퓨터와 마이크로비트를 연결합니다.
+- 코딩을 통해 입력 값을 다양하게 조절합니다.
+- 숫자의 크기에 따라 LED 불빛의 세기가 달라지는 확인합니다.
+: 위 영상과 같이 작동을 해보고, 작동이 잘 되면 다음 단계로 이동합니다.
++ 영상
+---
+run|1|LED 불켜기 작동|작동 오류 시 확인할 점|
+- 각 모듈의 VCC핀이 확장보드의 V핀에 잘 꽂아져있는지 확인합니다.
+- 각 모듈의 GND핀이 확장보드의 G핀에 잘 꽂아져있는지 확인합니다.
+- 블록을 선택할 때 ‘아날로그’ 또는 ‘디지털’이 사용용도에 맞게 선택되었는지 확인합니다.
+- 블록에서 핀번호를 선택할 때, 모듈이 꽂혀있는 핀번호가 맞는지 확인합니다.
+- 코딩 후 마이크로비트에 코드내용을 다운로드를 하지 않았는지 점검합니다.
+- 마이크로비트가 확장보드에 앞뒤가 뒤집혀 꽃혀있지 않은지 확인합니다.
+---
+divider|2|02|가변저항 사용하기|
+@toc 가변저항 사용하기
+---
+parts|2|가변저항 사용하기 회로|필요한 부품|
+- 마이크로비트 1개
+- 확장보드 1개
+- LED 모듈 2개 (색은 상관없음)
+- 멀티가변저항 모듈 1개
+- 암-암 점퍼선 10Cm 10개
+---
+video|2|가변저항 사용하기 회로|영상 시청하기|
+: 다음 사항에 중점을 두고 영상을 시청 합니다.
+- 가변저항 모듈의 OT1, OT2, VCC, GND핀이 확장보드의 어떤 핀에 꽂히는 지 살펴봅니다.
++ 영상
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|첫번째, LED 모듈의 IN핀에 노란색 점퍼선을 연결합니다.|1
+* 보통 신호값은 노란색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* IN을 통해서 신호값이 LED 모듈로 입력이 됩니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|LED 모듈의 VCC핀에 빨간색 점퍼선을 연결합니다.|2
+* 보통 VCC는 빨간색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* VCC를 통해서 LED 모듈로 전기를 공급합니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|확장보드의 11번핀에 LED 모듈의 IN핀에 연결되었던 노란색 점퍼선을 연결합니다.|4
+* 확장보드(마이크로비트)의 11번핀과 첫번째 LED 모듈의 IN핀이 연결됩니다.
+* 코딩을 통해 입력한 신호값이 확장보드(마이크로비트)11번 핀을 통해 LED 모듈의 IN핀으로 전달되고, 신호값 만큼 LED의 불이 켜지게 됩니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|확장보드의 11번핀 아래의 V핀(빨간색핀)에 LED 모듈의 VCC핀에 연결되었던 빨간색 점퍼선을 연결합니다.|5
+* 확장보드(마이크로비트)의 11번 V핀과 첫번째 LED 모듈의 VCC핀이 연결됩니다.
+* LED 모듈에 전기를 공급해주기 위해, 배터리의 (+)에 연결하는 것과 같습니다.
+* V핀 어느 곳에 연결해도 상관없지만, 연결상태를 확인하기 쉽게 11번 핀 바로 아래의 V핀에 연결합니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|LED 모듈의 GND핀에 검은색 점퍼선을 연결합니다.|3
+* 보통 GND는 검은색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* GND를 통해서 LED 모듈로 전기를 공급합니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|확장보드의 11번핀 아래의 G핀(검은색핀)에 LED 모듈의 GND핀에 연결되었던 검은색 점퍼선을 연결합니다.|6
+* 확장보드(마이크로비트)의 11번 G핀과 첫번째 LED 모듈의 GND핀이 연결됩니다.
+* LED 모듈에 전기를 공급해주기 위해, 배터리의 (-)에 연결하는 것과 같습니다.
+* G핀 어느 곳에 연결해도 상관없지만, 연결상태를 확인하기 쉽게 11번 핀 바로 아래의 G핀에 연결합니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|두번째, LED 모듈의 IN핀에 노란색 점퍼선을 연결합니다.|7
+* 보통 신호값은 노란색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* IN을 통해서 신호값이 LED 모듈로 입력이 됩니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|첫번째 LED 모듈과 같은 방법으로 확장보드의 12번핀에 두번째 LED 모듈을 연결합니다.|8
+* 확장보드(마이크로비트)의 12번핀과 두번째 LED 모듈의 IN핀이 연결됩니다.
+* 확장보드(마이크로비트)의 12번 V핀과 두번째 LED 모듈의 VCC핀이 연결됩니다.
+* 확장보드(마이크로비트)의 12번 G핀과 두번째 LED 모듈의 GND핀이 연결됩니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|가변저항 모듈의 OT1핀에 빨간색 점퍼선을 연결합니다.|9
+* 보통 신호값은 노란색 점퍼선을 많이 사용하지만, 빨간색 LED를 제어하는 것을 나타내기 위해 빨간색 점퍼선을 사용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* OT1핀을 통해서 신호값이 전달 됩니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|가변저항 모듈의 OT2핀에 초록색 점퍼선을 연결합니다.|10
+* 보통 신호값은 노란색 점퍼선을 많이 사용하지만, 초록색 LED를 제어하는 것을 나타내기 위해 초록색 점퍼선을 사용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* OT2핀을 통해서 신호값이 전달 됩니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|가변저항 모듈의 VCC핀에 빨간색 점퍼선을 연결합니다.|11
+* 보통 VCC는 빨간색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* VCC를 통해서 가변저항 모듈로 전기를 공급합니다
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|가변저항 모듈의 GND핀에 검은색 점퍼선을 연결합니다.|12
+* 보통 GND는 검은색 점퍼선을 많이 이용합니다.
+* 점퍼선은 색깔이 달라도 기능은 같기 때문에 다른 색의 점퍼선을 사용해도 됩니다.
+* GND를 통해서 가변저항 모듈로 전기를 공급합니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|확장보드의 1번핀에 가변저항 모듈의 OT1핀에 연결되었던 빨간색 점퍼선을 연결합니다.|13
+* 확장보드(마이크로비트)의 1번핀과 가변저항 모듈의 OT1핀이 연결됩니다.
+* 첫번째 가변저항을 돌려 입력한 신호값이 OT1핀을 통해 확장보드(마이크로비트)의 1번핀으로 전달되고, 신호값 만큼 첫번째 LED(빨간색)의 불이 켜지게 됩니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|확장보드의 2번핀에 가변저항 모듈의 OT2핀에 연결되었던 빨간색 점퍼선을 연결합니다.|14
+* 확장보드(마이크로비트)의 2번핀과 가변저항 모듈의 OT2핀이 연결됩니다.
+* 두번째 가변저항을 돌려 입력한 신호값이 OT2핀을 통해 확장보드(마이크로비트)의 2번핀으로 전달되고, 신호값 만큼 두번째 LED(초록색)의 불이 켜지게 됩니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|확장보드의 1번핀 아래의 V핀(빨간색핀)에 가변저항 모듈의 VCC핀에 연결되었던 빨간색 점퍼선을 연결합니다.|15
+* 확장보드(마이크로비트)의 V핀과 가변저항 모듈의 VCC핀이 연결됩니다.
+* LED 모듈에 전기를 공급해주기 위해, 배터리의 (+)에 연결하는 것과 같습니다.
+* V핀 어느 곳에 연결해도 상관없지만, 연결상태를 확인하기 쉽게 1번 핀 바로 아래의 V핀에 연결합니다.
+---
+step|2|가변저항 사용하기 회로 · 순서대로 따라하기|확장보드의 1번핀 아래의 G핀(검은색핀)에 가변저항 모듈의 GND핀에 연결되었던 검은색 점퍼선을 연결합니다.|16
+* 확장보드(마이크로비트)의 G핀과 가변저항 모듈의 GND핀이 연결됩니다.
+* 가변저항 모듈에 전기를 공급해주기 위해, 배터리의 (-)에 연결하는 것과 같습니다.
+* G핀 어느 곳에 연결해도 상관없지만, 연결상태를 확인하기 쉽게 1번 핀 바로 아래의 G핀에 연결합니다.
+---
+done|2|가변저항 사용하기 회로|완성된 회로|
+: 회로가 위의 사진과 같이 잘 완성이 되었다면 다음 코딩 단계로 이동합니다.
++ AR 보기
+---
+video|2|가변저항 사용하기 코딩|영상 시청하기|
+: 다음 사항에 중점을 두고 영상을 시청 합니다.
+- 사용되는 블록의 역할이 무엇인지 생각합니다.
+- 블록에 사용되는 핀번호의 의미를 생각합니다.
+~ 마이크로비트
++ 영상
+---
+code|2|가변저항 사용하기 코딩 · 순서대로 따라하기|코딩 순서|
+1. 마이크로비트 블록 중에서 [고급-핀]을 클릭한다.
+2. [핀] 블록 중에서 아래의 [아날로그 값 출력] 블록을 드래그하여 [무한반복 실행] 블록 안으로 넣는다.
+---
+code|2|가변저항 사용하기 코딩 · 순서대로 따라하기|코딩 순서|
+3. 회로에서 첫번째 LED 모듈을 연결한 확장보드의 핀번호로 변경한다.(앞의 예시에서는 확장보드의 11번 핀에 첫번째 LED 모듈을 연결하였음)
+4. 마이크로비트 블록 [고급-핀]의 [아날로그 입력 값] 블록을 선택한다.
+---
+code|2|가변저항 사용하기 코딩 · 순서대로 따라하기|코딩 순서|
+5. [아날로그 입력 값] 블록을 드래그하여 [아날로그 값 출력] 블록의 값을 넣는 곳 안으로 넣는다.
+6. 회로에서 멀티 가변저항 모듈의 OT1 핀에 연결한 확장보드의 핀번호로 변경한다.(앞의 예시에서는 확장보드의 1번 핀에 멀티 가변저항 모듈의 OT1 핀을 연결하였음)
+---
+code|2|가변저항 사용하기 코딩 · 순서대로 따라하기|코딩 순서|
+6. [아날로그 값 출력] 블록을 오른쪽 클릭하고, ‘복사’를 선택하여 블록을 복사합니다.
+7. 복사한 블록을 기존의 블록 아래에 집어 넣습니다.
+---
+code|2|가변저항 사용하기 코딩 · 순서대로 따라하기|코딩 순서|
+8. 회로에서 두번째 LED 모듈을 연결한 확장보드의 핀번호로 변경한다.(앞의 예시에서는 확장보드의 12번 핀에 두번째 LED 모듈을 연결하였음)
+9. 회로에서 멀티 가변저항 모듈의 OT2 핀에 연결한 확장보드의 핀번호로 변경한다.(앞의 예시에서는 확장보드의 2번 핀에 멀티 가변저항 모듈의 OT2 핀을 연결하였음)
+---
+run|2|가변저항 사용하기 작동|작동 확인하기|
+- 멀티 가변저항을 돌려 입력 값을 다양하게 조절합니다.
+- 멀티 가변저항에 입력하는 값의 크기에 따라 각각의 LED 불빛의 세기가 달라지는 확인합니다.
+: 위 영상과 같이 작동을 해보고, 작동이 잘 되면 다음 단계로 이동합니다.
++ 영상
+---
+run|2|가변저항 사용하기 작동|작동 오류 시 확인할 점|
+- 각 모듈의 VCC핀이 확장보드의 V핀에 잘 꽂아져있는지 확인합니다.
+- 각 모듈의 GND핀이 확장보드의 G핀에 잘 꽂아져있는지 확인합니다.
+- 블록을 선택할 때 ‘아날로그’ 또는 ‘디지털’이 사용용도에 맞게 선택되었는지 확인합니다.
+- 블록에서 핀번호를 선택할 때, 모듈이 꽂혀있는 핀번호가 맞는지 확인합니다.
+- 코딩 후 마이크로비트에 코드내용을 업로드 하지 않았는지 점검합니다.
+- 마이크로비트가 확장보드에 앞뒤가 뒤집혀 꽃혀있지 않은지 확인합니다.
+- 영상과 글을 천천히 다시 살펴보며, 자신의 회로구성과 코딩을 비교해봅니다.
+---
+divider|3|03|RGB-LED 불켜기|
+@toc RGB-LED 불켜기
+---
+parts|3|RGB-LED 불켜기 회로구성|필요한 부품|
+- 마이크로비트 1개
+- 확장보드 1개
+- RGB-LED 모듈 1개
+- 암-암 점퍼선 10Cm 4개
+---
+video|3|RGB-LED 불켜기 회로구성|영상 시청하기|
+: 다음 사항에 중점을 두고 영상을 시청 합니다.
+- 모듈의 GND, R, G, B핀이 확장보드의 어떤 핀에 꽂히는 지 살펴봅니다.
++ 영상
+---
+step|3|RGB-LED 불켜기 회로구성 · 순서대로 따라하기|RGB-LED 모듈의 R핀에 빨간색 점퍼선을 연결합니다.|1
+* RGB-LED 모듈의 빨간색 빛을 제어하는 것을 나타내기 위해 빨간색 점퍼선을 사용합니다.
+* R핀을 통해서 전달된 신호값 만큼 RGB-LED 모듈의 빨간색 빛의 세기가 변합니다.
+---
+step|3|RGB-LED 불켜기 회로구성 · 순서대로 따라하기|RGB-LED 모듈의 G핀에 초록색 점퍼선을 연결합니다.|2
+* RGB-LED 모듈의 초록색 빛을 제어하는 것을 나타내기 위해 초록색 점퍼선을 사용합니다.
+* G핀을 통해서 전달된 신호값 만큼 RGB-LED 모듈의 초록색 빛의 세기가 변합니다.
+---
+step|3|RGB-LED 불켜기 회로구성 · 순서대로 따라하기|RGB-LED 모듈의 B핀에 파란색 점퍼선을 연결합니다.|3
+* RGB-LED 모듈의 파란색 빛을 제어하는 것을 나타내기 위해 파란색 점퍼선을 사용합니다.
+* B핀을 통해서 전달된 신호값 만큼 RGB-LED 모듈의 파란색 빛의 세기가 변합니다.
+---
+step|3|RGB-LED 불켜기 회로구성 · 순서대로 따라하기|RGB-LED 모듈의 GND핀에 검은색 점퍼선을 연결합니다.|4
+* 보통 GND는 검은색 점퍼선을 많이 이용합니다.
+* GND를 통해서 RGB-LED 모듈로 전기를 공급합니다.
+* RGB-LED는 R,G,B핀들이 전기 공급을 도와주기 때문에 VCC는 연결하지 않습니다.
+---
+step|3|RGB-LED 불켜기 회로 · 순서대로 따라하기|확장보드의 11번핀에 RGB-LED 모듈의 R핀에 연결되었던 빨간색 점퍼선을 연결합니다.|5
+* 확장보드(마이크로비트)의 11번핀과 RGB-LED 모듈의 R핀이 연결됩니다.
+* 코딩을 통해 입력한 신호값이 확장보드(마이크로비트)11번 핀을 통해 RGB-LED 모듈의 R핀으로 전달되고, 신호값 세기 만큼 RGB-LED의 빨간색 불이 켜지게 됩니다.
+---
+step|3|RGB-LED 불켜기 회로 · 순서대로 따라하기|확장보드의 12번핀에 RGB-LED 모듈의 G핀에 연결되었던 초록색 점퍼선을 연결합니다.|6
+* 확장보드(마이크로비트)의 12번핀과 RGB-LED 모듈의 G핀이 연결됩니다.
+* 코딩을 통해 입력한 신호값이 확장보드(마이크로비트)12번 핀을 통해 RGB-LED 모듈의 G핀으로 전달되고, 신호값 세기 만큼 RGB-LED의 초록색 불이 켜지게 됩니다.
+---
+step|3|RGB-LED 불켜기 회로 · 순서대로 따라하기|확장보드의 13번핀에 RGB-LED 모듈의 B핀에 연결되었던 파란색 점퍼선을 연결합니다.|7
+* 확장보드(마이크로비트)의 13번핀과 RGB-LED 모듈의 B핀이 연결됩니다.
+* 코딩을 통해 입력한 신호값이 확장보드(마이크로비트)13번 핀을 통해 RGB-LED 모듈의 B핀으로 전달되고, 신호값 세기 만큼 RGB-LED의 파란색 불이 켜지게 됩니다.
+---
+step|3|RGB-LED 불켜기 회로 · 순서대로 따라하기|확장보드의 11번핀 아래의 G핀(검은색핀)에 RGB-LED 모듈의 GND핀에 연결되었던 검은색 점퍼선을 연결합니다.|8
+* 확장보드(마이크로비트)의 G핀과 RGB-LED 모듈의 GND핀이 연결됩니다.
+* LED 모듈에 전기를 공급해주기 위해, 배터리의 (-)에 연결하는 것과 같습니다.
+* G핀 어느 곳에 연결해도 상관없지만, 연결상태를 확인하기 쉽게 11번 핀 바로 아래의 G핀에 연결합니다.
+---
+done|3|RGB-LED 불켜기 회로|완성된 회로|
+: 회로가 위의 사진과 같이 잘 완성이 되었다면 다음 코딩 단계로 이동합니다.
++ AR 보기
+---
+video|3|RGB-LED 불켜기 코딩|영상 시청하기|
+: 다음 사항에 중점을 두고 영상을 시청 합니다.
+- 사용되는 블록의 역할이 무엇인지 생각합니다.
+- 블록에 사용되는 핀번호의 의미를 생각합니다.
+~ 마이크로비트
++ 영상
+---
+code|3|RGB-LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+1. 마이크로비트 블록 중에서 [고급-핀]을 클릭한다.
+2. [핀] 블록 중에서 아래의 [아날로그 값 출력] 블록을 드래그하여 [무한반복 실행] 블록 안으로 넣는다.
+---
+code|3|RGB-LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+3. 회로에서 RGB-LED 모듈의 R핀을 연결한 확장보드의 핀번호로 변경한다.(앞의 예시에서는 확장보드의 11번 핀에 RGB-LED 모듈의 R핀을 연결하였음)
+4. [아날로그 값 출력] 블록을 오른쪽 클릭하고, ‘복사’를 선택하여 블록을 복사합니다.
+---
+code|3|RGB-LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+5. 복사한 블록을 기존의 블록 아래에 집어 넣습니다.
+6. 회로에서 RGB-LED 모듈의 G핀을 연결한 확장보드의 핀번호로 변경한다.(앞의 예시에서는 확장보드의 12번 핀에 RGB-LED 모듈의 G핀을 연결하였음)
+---
+code|3|RGB-LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+7. [아날로그 값 출력] 블록을 오른쪽 클릭하고, ‘복사’를 선택하여 블록을 한번 더 복사합니다.
+8. 복사한 블록을 기존의 블록 아래에 집어 넣습니다.
+---
+code|3|RGB-LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+9. 회로에서 RGB-LED 모듈의 B핀을 연결한 확장보드의 핀번호로 변경한다.(앞의 예시에서는 확장보드의 13번 핀에 RGB-LED 모듈의 B핀을 연결하였음)
+---
+code|3|RGB-LED 불켜기 코딩 · 순서대로 따라하기|코딩 순서|
+10. 아날로그 값을 0 또는 1023으로 입력한 후, 다운로드 버튼을 눌러 마이크로비트로 값을 전송한다. 다운로드가 완료된 후 RGB-LED 모듈의 빛의 밝기와 색을 확인한다.
+11. 아날로그 값을 다양하게 입력한 후, 다운로드 버튼을 눌러 마이크로비트로 값을 전송한다. 다운로드가 완료된 후 RGB-LED 모듈의 빛의 밝기와 색을 확인한다.
+---
+run|3|RGB-LED 불켜기 작동|작동 확인하기|
+- 컴퓨터와 마이크로비트를 연결합니다.
+- 코딩을 통해 입력 값을 다양하게 조절합니다.
+- 숫자의 크기에 따라 RGB-LED 불빛의 세기가 달라지는 확인합니다.
+: 위 영상과 같이 작동을 해보고, 작동이 잘 되면 다음 단계로 이동합니다.
++ 영상
+---
+run|3|RGB-LED 불켜기 작동|작동 오류 시 확인할 점|
+- 모듈의 R, G, B핀이 확장보드의 11, 12, 13핀에 잘 꽂아져있는지 확인합니다.
+- 각 모듈의 GND핀이 확장보드의 G핀에 잘 꽂아져있는지 확인합니다.
+- 블록을 선택할 때 ‘아날로그’ 또는 ‘디지털’이 사용용도에 맞게 선택되었는지 확인합니다.
+- 블록에서 핀번호를 선택할 때, 모듈이 꽂혀있는 핀번호가 맞는지 확인합니다.
+- 코딩 후 마이크로비트에 코드내용을 다운로드를 하지 않았는지 점검합니다.
+- 마이크로비트가 확장보드에 앞뒤가 뒤집혀 꽃혀있지 않은지 확인합니다.
+---
+divider|4|04|빛의 합성 실험 장치 만들기|
+@toc 빛의 합성 실험 장치 만들기
+---
+parts|4|빛의 합성 실험 장치 회로|필요한 부품|
+- 마이크로비트 1개
+- 확장보드 1개
+- RGB-LED 모듈 1개
+- 멀티가변저항 모듈 1개
+- 암-암 점퍼선 10Cm 9개
+- 탁구공 1개
+---
+text|4|빛의 합성 장치 만들기 · 주요 부품 설명|RGB-LED는 4개의 핀으로 이루어져 있습니다.|
+- R,G,B 핀에는 확장보드(마이크로비트)에서 보내지는 신호값이 입력됩니다.
+- GND핀은 RGB-LED 모듈에 전기를 공급하기 위해 배터리의 (-)에 연결하는 것과 같습니다.
+---
+text|4|빛의 합성 장치 만들기 · 주요 부품 설명|멀티가변저항 모듈|
+- 가변저항을 조절하여 값을 변경하면 OT1, OT2, OT3 핀을 통해 입력된 값이 확장보드(마이크로비트)로 보내집니다.
+- VCC핀과 GND핀은 멀티가변저항 모듈에 전기를 공급하기 위해 배터리의 (+)와 (-)에 연결하는 것과 같습니다.
+---
+text|4|빛의 합성 장치 만들기 · 실험 장치의 조건|실험 장치의 조건|
+- 멀티가변저항 모듈을 이용하여 값을 입력할 수 있는 입력장치를 만듭니다.
+- RGB-LED 모듈을 이용하여, 멀티가변저항 모듈을 통해 입력된 값을 각각의 빛과 세기로 출력할 수 있는 출력장치를 만듭니다.
+- 입력한 값에 따라 빛의 색과 세기가 바뀌는 ‘빛의 합성 장치’를 완성합니다.
++ 활동지
+---
+text|4|빛의 합성 장치 만들기 · 회로 구성 및 코딩하기|앞에서 배운 ‘LED 켜기’, ‘가변저항 사용하기’ 활동을 바탕으로 빛의 합성 장치를 만들어봅시다.|
+~ 마이크로비트
+---
+text|4|빛의 합성 실험 장치 만들기|잘 되지 않을 때|
+- 전 단계에서 배운 내용을 다시 한번 살펴봅니다.
+- ‘공유하기’에 들어가서, 친구들이 만든 장치를 살펴보고 만들거나, 댓글을 이용하여 질문을 합니다.
+- 선생님의 안내에 따라 장치를 만들어봅니다.
+---
+text|4|공유하기|자신이 만든 실험 장치를 공유해봅시다.|
+- ‘공유하기’ 버튼을 클릭하여 ‘패들렛’으로 이동하여 회로와 코딩을 공유합니다.
+- 스마트폰이나 스마트패드를 따로 이용할 경우, QR코드를 이용하여 ‘패들렛’으로 이동합니다.
++ 공유하기|https://padlet.com/dkent12h/2023-02-nxo0rr0tc3cg
+Q https://padlet.com/dkent12h/2023-02-nxo0rr0tc3cg
+---
+text|4|유의사항|다음사항에 유의하여 다음 페이지로 넘깁니다.|
+: 다음 페이지는 ‘빛의 합성 실험 장치’를 만들기 위한 ‘회로구성’과 ‘코딩’ 영상이 제시되어 있습니다. 아래의 경우에 해당하는 경우만 다음 페이지를 보도록 합니다.
+- 빛의 합성 실험 장치를 다 만들고, 앞에서 설명한 ‘실험장치의 조건’을 만족시킨 후, ‘공유하기’에서 장치를 공유한 학생
+- 빛의 합성 실험 장치를 만들기에 어려움이 있었지만, ‘공유하기’를 통해 도움을 받아 장치를 만들고 공유한 학생
+- 선생님께 영상을 시청하도록 안내를 받은 학생
+---
+video|4|영상 시청하기|빛의 합성 장치 회로|
++ 영상
++ AR 보기
+---
+video|4|영상 시청하기|빛의 합성 장치 코딩|
++ 영상
+---
+text|4|빛의 합성 장치 코딩|코딩 살펴보기|
+- 멀티 가변저항의 1번에 입력되는 아날로그 값을 11번에 연결된 RGB-LED에 출력합니다. (예시에서는 11번에 R(빨간색)을 연결하였습니다.)
+- 멀티 가변저항의 2번에 입력되는 아날로그 값을 12번에 연결된 RGB-LED에 출력합니다. (예시에서는 12번에 G(초록색)을 연결하였습니다.)
+- 멀티 가변저항의 3번에 입력되는 아날로그 값을 13번에 연결된 RGB-LED에 출력합니다. (예시에서는 13번에 B(파란색)을 연결하였습니다.)
+---
+divider|5|05|빛의 합성 실험하기|
+@toc 빛의 합성 실험하기
+---
+video|5|빛의 합성 실험하기|영상 시청하기|
++ 영상
+---
+text|5|빛의 합성 실험하기|실험 순서|
+: 활동지를 클릭하여 아래의 순서대로 실험을 하고 결과를 적습니다.
+1. 빨간색 빛과 초록색 빛을 같은 세기로 켭니다.
+2. 초록색 빛과 빨간색 빛을 같은 세기로 켭니다.
+3. 빨간색 빛과 파란색 빛을 같은 세기로 켭니다.
+4. 빨간색 빛과 초록색 빛과 파란색 빛을 같은 세기로 켭니다.
+5. 각 색의 빛의 밝기를 다르게하여 다양한 색을 만들어봅시다.
++ 활동지
+---
+divider|6|06|개념 정리하기|
+@toc 개념 정리하기
+---
+text|6|개념 정리하기 · 빛의 합성과 관련된 과학적 개념을 익혀봅시다.|빛의 합성 이용|
+: 스마트 기기나 컴퓨터 화면을 크게 확대해 보면 빨간색, 초록색, 파란색의 세 가지 작은 점이 규칙적으로 배열된 것을 알 수 있다. 이 세 점을 묶어서 화소라고 하는데, 각 화소에서 나오는 빛이 합성되어 하나의 색으로 보이게 된다. 이처럼 텔레비전, 컴퓨터, 스마트 기기 등의 영상 장치는 빛의 합성 원리를 이용하여 다양한 색을 구현한다.
+---
+text|6|개념 정리하기 · 빛의 합성과 관련된 과학적 개념을 익혀봅시다.|빛의 합성|
+: 색깔이 다른 빛을 한곳에 비추면 다른 색의 빛을 만들 수 있다. 빨간색, 초록색, 파란색 빛을 적절하게 합성하면 모든 색의 빛을 만들 수 있으므로, 이 세 가지 색의 빛을 빛의 삼원색이라고 한다. 영상 장치나 조명에서 나오는 같은 밝기의 빨간색, 초록색, 파란색 빛이 동시에 눈에 들어오면 흰색으로 보인다.
+---
+text|7|평가하기|오늘 배운 내용을 바탕으로 아래 문제를 다시 풀어봅시다.|
+@toc 평가하기
++ 활동지
+---
+text|7|평가하기|오늘 배운 내용을 바탕으로 오늘 활동을 정리해봅시다.|
++ 성찰일지
+---
+text|8|공유하기 링크 모음|Padlet|
+@toc 공유하기 링크 모음
+L 실험장치 공유 링크|https://padlet.com/dkent12h/2023-02-nxo0rr0tc3cg
+L 실험결과 공유 링크|https://padlet.com/dkent12h/padlet-w7zj5f9tnwgigqag
+`;
+
+/* ---------- 쪽 만들기 ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const $ = s => document.querySelector(s);
+
+const pages = DATA.trim().split(/\n---\n/).map(blk => {
+  const lines = blk.trim().split("\n");
+  const [kind, chap, eb, title, num] = lines.shift().split("|");
+  const pg = { kind, chap: +chap, eb, title, num, lines: [], toc: null };
+  lines.forEach(l => { if (l.startsWith("@toc ")) pg.toc = l.slice(5); else pg.lines.push(l); });
+  return pg;
+});
+pages.push({ kind: "end", chap: 0, eb: "", title: "", lines: [], toc: null });   // 뒤표지
+const N = pages.length;
+
+function chipHTML(label, n, urlOverride) {
+  const url = urlOverride || (label === "영상" ? MEDIA.video[n] : MEDIA.links[n] && MEDIA.links[n][label]);
+  const icon = label === "영상" ? "▶" : label === "AR 보기" ? "◎" : label === "공유하기" ? "↗" : "✎";
+  return url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">${icon} ${esc(label)}</a>` : `<span class="chip">${icon} ${esc(label)}</span>`;
+}
+function mediaHTML(n, skipImg) {
+  let h = "";
+  if (ILLU[n]) h += `<figure class="fig svg${n === 87 ? " dark" : ""}">${ILLU[n]}</figure>`;
+  if (!skipImg) [].concat(MEDIA.img[n] || []).forEach(src => { h += `<figure class="fig"><img src="${esc(src)}" alt="" loading="lazy" decoding="async"></figure>`; });
+  const v = MEDIA.video[n];
+  if (v) {
+    const m = String(v).match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/);
+    h += m ? `<figure class="fig vid"><button type="button" class="play" data-yt="${m[1]}" aria-label="영상 재생"><img src="https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg" alt=""><span class="tri"></span></button></figure>`
+           : `<figure class="fig vid"><video src="${esc(v)}" controls playsinline></video></figure>`;
+  }
+  return h;
+}
+function partsHTML(n, bl) {
+  const imgs = MEDIA.img[n] || [], map = PARTS[n];
+  const items = bl.split("</li>").filter(Boolean).map(x => x + "</li>");
+  return items.map((li, k) => {
+    const th = map && map[k] ? map[k].map(j => `<img src="${esc(imgs[j])}" alt="">`).join("") : "";
+    return th ? li.replace("</li>", `<span class="th">${th}</span></li>`) : li;
+  }).join("");
+}
+function pageHTML(i) {
+  if (i < 0 || i >= N) return `<div class="page blank"></div>`;
+  const p = pages[i], n = i + 1, ch = CHAPS[p.chap], c = ch.c;
+  const foot = `<div class="pfoot"><span>${esc(p.kind === "cover" || p.kind === "end" ? "" : ch.n)}</span><span>${n}</span></div>`;
+  if (p.kind === "cover") {
+    return `<div class="page cover" style="--c:${c}"><div class="cv-e">${esc(p.eb)}</div><div class="rgb"><i></i><i></i><i></i></div>
+      <div class="cv-t">${esc(p.title)}</div><div class="cv-s">${esc(p.lines[0] ? p.lines[0].slice(2) : "")}</div></div>`;
+  }
+  if (p.kind === "end") {
+    return `<div class="page endp" style="--c:${c}"><div class="mini" style="width:calc(var(--u)*9);height:calc(var(--u)*9);border-radius:calc(var(--u)*2.4);gap:calc(var(--u)*.9);padding:calc(var(--u)*2)"><i></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i></i></div>
+      <div class="ttl" style="font-size:calc(var(--u)*6.5)">DK microbit</div><div class="chips"><a class="chip" href="#p1" data-go="1" style="--c:#0b0b10">처음으로</a></div></div>`;
+  }
+  if (p.kind === "divider") {
+    return `<div class="page divider" style="--c:${c}">${mediaHTML(n)}<div class="no">${esc(p.eb)}</div><div class="bar"></div><div class="big">${esc(p.title)}</div>${foot}</div>`;
+  }
+  let body = "", bl = "", nt = "", nums = "", chips = "", extra = "", tags = "", links = "", qr = "";
+  p.lines.forEach(l => {
+    let m;
+    if (l.startsWith("- ")) bl += `<li>${esc(l.slice(2))}</li>`;
+    else if (l.startsWith("* ")) nt += `<li>${esc(l.slice(2))}</li>`;
+    else if (l.startsWith("+ ")) { const [lab, url] = l.slice(2).split("|"); chips += chipHTML(lab, n, url); }
+    else if (l.startsWith(": ")) body += `<p class="${p.kind === "text" && p.lines.length === 1 ? "para" : ""}">${esc(l.slice(2))}</p>`;
+    else if (l.startsWith("~ ")) { const u = MEDIA.links[n] && MEDIA.links[n][l.slice(2)]; tags += u ? `<a class="tag" href="${esc(u)}" target="_blank" rel="noopener">${esc(l.slice(2))} ↗</a>` : `<span class="tag">${esc(l.slice(2))}</span>`; }
+    else if (l.startsWith("L ")) { const [lab, url] = l.slice(2).split("|"); links += `<a href="${esc(url)}" target="_blank" rel="noopener"><b>${esc(lab)} ↗</b><span>${esc(url)}</span></a>`; }
+    else if (l.startsWith("Q ")) qr = `<div class="qr" data-url="${esc(l.slice(2))}"></div>`;
+    else if ((m = l.match(/^(\d+)\. (.*)$/))) nums += `<li><span class="n">${m[1]}</span><span>${esc(m[2])}</span></li>`;
+  });
+  let title;
+  if (p.kind === "step") {
+    title = `<div class="stepno">${esc(p.num)}</div><div class="stm">${esc(p.title)}</div>`;
+    return `<div class="page" style="--c:${c}"><div class="eb">${esc(p.eb)}</div>${title}
+      <div class="body">${nt ? `<ul class="nt">${nt}</ul>` : ""}${mediaHTML(n)}</div>${foot}</div>`;
+  }
+  const longTitle = p.title.length > 26 && p.lines.length > 0;
+  title = `<h2 class="ttl" ${p.lines.length===0 ? `style="font-size:calc(var(--u)*8.2);margin-top:calc(var(--u)*10)"` : longTitle ? `style="font-size:calc(var(--u)*4.2)"` : ""}>${esc(p.title)}</h2>`;
+  return `<div class="page" style="--c:${c}"><div class="eb">${esc(p.eb)}</div>${title}
+    <div class="body">${tags}${body}${p.kind === "parts" ? `<ul class="parts${(bl.match(/<li>/g)||[]).length > 5 ? " many" : (bl.match(/<li>/g)||[]).length > 4 ? " five" : ""}">${partsHTML(n, bl)}</ul>` : bl ? `<ul class="bl">${bl}</ul>` : ""}${nums ? `<ol class="nums">${nums}</ol>` : ""}${nt ? `<ul class="nt">${nt}</ul>` : ""}${links ? `<div class="lk">${links}</div>` : ""}${qr}${mediaHTML(n, p.kind === "parts")}${chips ? `<div class="chips">${chips}</div>` : ""}</div>${foot}</div>`;
+}
+function fillQR(root) {
+  root.querySelectorAll(".qr").forEach(el => {
+    try { const q = qrcode(0, "M"); q.addData(el.dataset.url); q.make(); el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) {}
+  });
+}
+function put(el, i, side) {   // side: 'l' | 'r'
+  el.innerHTML = pageHTML(i);
+  fillQR(el);
+  const f = el.querySelector(".pfoot"); void f;
+}
+
+/* ---------- 책 크기 · 보기 방식 ---------- */
+const book = $("#book"), L = $("#L"), R = $("#R"), F = $("#F"), Ff = $("#Ff"), Fb = $("#Fb");
+let two = true, cur = 0, busy = false;   // cur: 지금 보이는 첫 쪽(0부터)
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function layout() {
+  const st = $("#stage").getBoundingClientRect();
+  const aw = st.width - 24, ah = st.height - 16;
+  two = aw >= 860 && aw / ah > 1.15;
+  const ratio = 0.78;
+  let pw, ph;
+  if (two) { pw = Math.min(aw / 2, ah * ratio, 760); ph = pw / ratio; }
+  else { pw = Math.min(aw, 560); ph = Math.min(ah, pw / 0.62); }
+  book.style.width = (two ? pw * 2 : pw) + "px";
+  book.style.height = ph + "px";
+  book.classList.toggle("one", !two);
+  book.style.setProperty("--u", (pw / 100) + "px");
+  document.documentElement.style.setProperty("--u", (pw / 100) + "px");
+  if (two && cur % 2) cur -= 1;
+  render();
+}
+function render() {
+  if (two) { put(L, cur); put(R, cur + 1); }
+  else { put(R, cur); }
+  ui();
+}
+function step() { return two ? 2 : 1; }
+function ui() {
+  const last = Math.min(cur + step(), N);
+  $("#pos").textContent = two ? `${cur + 1}–${last} / ${N}` : `${cur + 1} / ${N}`;
+  $("#rng").max = N; $("#rng").value = cur + 1;
+  $("#prev").disabled = cur <= 0;
+  $("#next").disabled = cur + step() >= N;
+  const h = "#p" + (cur + 1);
+  if (location.hash !== h) history.replaceState(null, "", h);
+}
+
+/* ---------- 넘기기 ---------- */
+function go(target) {
+  if (busy) return;
+  target = Math.max(0, Math.min(N - 1, target));
+  if (two) target -= target % 2;
+  if (target === cur) return;
+  const forward = target > cur;
+  if (!two || reduce || Math.abs(target - cur) > 2 && false) { cur = target; render(); return; }
+  busy = true;
+  F.classList.add("on");
+  if (forward) {
+    // 아래에 새 오른쪽 쪽, 넘어가는 장: 앞면=예전 오른쪽, 뒷면=새 왼쪽
+    put(R, target + 1);
+    Ff.className = "face front r"; Fb.className = "face back l";
+    put(Ff, cur + 1); put(Fb, target);
+    F.style.left = "50%"; F.style.transformOrigin = "left center";
+  } else {
+    put(L, target);
+    Ff.className = "face front l"; Fb.className = "face back r";
+    put(Ff, cur); put(Fb, target + 1);
+    F.style.left = "0"; F.style.transformOrigin = "right center";
+  }
+  F.style.transition = "none"; F.style.transform = "rotateY(0deg)";
+  void F.offsetWidth;
+  F.style.transition = "transform .75s cubic-bezier(.45,.05,.25,1)";
+  F.style.transform = `rotateY(${forward ? -180 : 180}deg)`;
+  const done = () => {
+    F.removeEventListener("transitionend", done);
+    cur = target; render();
+    F.classList.remove("on"); F.style.transition = "none"; F.style.transform = "rotateY(0deg)";
+    busy = false;
+  };
+  F.addEventListener("transitionend", done);
+}
+const next = () => go(cur + step()), prev = () => go(cur - step());
+
+$("#next").onclick = next; $("#prev").onclick = prev;
+$("#rng").oninput = e => go(+e.target.value - 1);
+addEventListener("keydown", e => {
+  if ($("#toc").classList.contains("on")) { if (e.key === "Escape") closeToc(); return; }
+  if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); next(); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); prev(); }
+  else if (e.key === "Home") go(0); else if (e.key === "End") go(N - 1);
+});
+let sx = null, sy = null;
+$("#stage").addEventListener("pointerdown", e => { sx = e.clientX; sy = e.clientY; });
+$("#stage").addEventListener("pointerup", e => {
+  if (sx == null) return;
+  const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) (dx < 0 ? next : prev)();
+});
+document.addEventListener("click", e => {
+  const pl = e.target.closest(".play");
+  if (pl) {
+    if (!/^https?:$/.test(location.protocol)) { window.open(`https://www.youtube.com/watch?v=${pl.dataset.yt}`, "_blank", "noopener"); return; }
+    const f = document.createElement("iframe"); f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin"); f.src = `https://www.youtube-nocookie.com/embed/${pl.dataset.yt}?autoplay=1&rel=0&playsinline=1`; f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin"); f.title = "영상"; f.allow = "autoplay; encrypted-media; picture-in-picture"; f.allowFullscreen = true; pl.replaceWith(f); return; }
+  const g = e.target.closest("[data-go]"); if (g) { e.preventDefault(); go(+g.dataset.go - 1); }
+});
+
+/* ---------- 목차 ---------- */
+const tocEl = $("#toc");
+function tocLabel(p, prevKind) {
+  if (p.toc) return [p.toc, true];
+  const k = p.kind;
+  if (k === "parts") return ["필요한 부품", false];
+  if (k === "video") return [/코딩/.test(p.eb) ? "코딩 영상 시청" : p.eb.indexOf("영상") === 0 ? p.title : "회로 영상 시청", false];
+  if (k === "step" && prevKind !== "step") return ["회로 만들기 · 순서대로 따라하기", false];
+  if (k === "done") return ["완성된 회로", false];
+  if (k === "code" && prevKind !== "code") return ["코딩 순서", false];
+  if (k === "run") return [p.title, false];
+  if (k === "text" && p.chap === 4) return [p.title.length > 18 ? p.eb.replace(/^.* · /, "") : p.title, false];
+  return null;
+}
+function buildToc() {
+  const groups = [];
+  pages.forEach((p, i) => {
+    if (p.kind === "end") return;
+    const lab = i === 0 ? ["표지", true] : tocLabel(p, i ? pages[i - 1].kind : "");
+    let g = groups[groups.length - 1];
+    if (!g || g.chap !== p.chap || p.kind === "divider") { g = { chap: p.chap, from: i, to: i, items: [] }; groups.push(g); }
+    g.to = i;
+    if (lab && p.kind !== "divider") g.items.push({ i, t: lab[0] });
+  });
+  $("#tocList").innerHTML = groups.map(g => {
+    const c = CHAPS[g.chap].c;
+    return `<section class="ch" style="--c:${c}" data-from="${g.from}" data-to="${g.to}"><button type="button" class="chap" aria-expanded="false">${esc(CHAPS[g.chap].n)}<span class="rg">${g.from + 1}–${g.to + 1}쪽</span><i class="chev"></i></button><ol>${g.items.map(it => `<li><button type="button" data-i="${it.i}">${esc(it.t)}<span class="pg">${it.i + 1}쪽</span></button></li>`).join("")}</ol></section>`;
+  }).join("");
+}
+function markToc() {
+  const bs = [...document.querySelectorAll("#tocList button[data-i]")];
+  let best = null;
+  bs.forEach(b => { b.classList.remove("cur"); if (+b.dataset.i <= cur + (two ? 1 : 0)) best = b; });
+  if (best) best.classList.add("cur");
+  document.querySelectorAll("#tocList .ch").forEach(sec => {
+    const on = best && sec.contains(best);
+    sec.classList.toggle("open", !!on);
+    sec.querySelector(".chap").setAttribute("aria-expanded", on ? "true" : "false");
+  });
+  return best;
+}
+function openToc() { tocEl.classList.add("on"); const b = markToc(); if (b) b.scrollIntoView({ block: "center" }); }
+function closeToc() { tocEl.classList.remove("on"); }
+$("#btnToc").onclick = openToc; $("#tocOpen").onclick = openToc; $("#tocX").onclick = closeToc;
+tocEl.addEventListener("click", e => { if (e.target === tocEl) closeToc(); });
+$("#tocList").addEventListener("click", e => {
+  const h = e.target.closest(".chap");
+  if (h) { const sec = h.parentElement, on = !sec.classList.contains("open"); sec.classList.toggle("open", on); h.setAttribute("aria-expanded", on); return; }
+  const b = e.target.closest("button[data-i]"); if (!b) return; closeToc(); go(+b.dataset.i);
+});
+
+/* ---------- 시작 ---------- */
+buildToc();
+const h0 = (location.hash.match(/^#p(\d+)$/) || [])[1];
+if (h0) cur = Math.max(0, Math.min(N - 1, +h0 - 1));
+layout();
+addEventListener("resize", layout);
+addEventListener("hashchange", () => { const m = location.hash.match(/^#p(\d+)$/); if (m && +m[1] - 1 !== cur) go(+m[1] - 1); });
+</script>
+</body>
+</html>

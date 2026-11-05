@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>피지컬컴퓨팅 과학실험 · DK microbit</title>
+<meta name="description" content="마이크로비트로 하는 피지컬컴퓨팅 과학실험 디지털교재 5종">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0b0b10;--muted:#6a6a76;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Noto Sans KR",system-ui,sans-serif;word-break:keep-all;color:var(--ink);background:radial-gradient(120% 90% at 72% 18%,#fbfbfc 0%,#ececf1 58%,#dedee8 100%) fixed}
+header{display:flex;justify-content:space-between;align-items:center;padding:22px clamp(16px,3vw,40px)}
+.brand{display:inline-flex;align-items:center;gap:12px;font-weight:800;font-size:20px;color:inherit;text-decoration:none}
+.mini{width:28px;height:28px;border-radius:8px;background:#111;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:6px}
+.mini i{border-radius:50%;background:#3b1616}.mini i.on{background:#ff3b30}
+.pill{border:1.5px solid var(--ink);border-radius:999px;padding:10px 20px;font-weight:700;font-size:15px;text-decoration:none;color:inherit}
+.pill:hover{background:var(--ink);color:#fff}
+main{max-width:1180px;margin:0 auto;padding:6vh clamp(16px,3vw,40px) 10vh}
+h1{margin:0;font-size:clamp(40px,8vw,108px);line-height:1;letter-spacing:-.05em;font-weight:800}
+.lead{margin:18px 0 44px;max-width:44ch;font-size:clamp(16px,1.5vw,21px);line-height:1.65;font-weight:500;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.card{position:relative;display:flex;flex-direction:column;gap:10px;padding:26px 26px 22px;border-radius:26px;background:#fff;border:1.5px solid rgba(11,11,16,.12);text-decoration:none;color:inherit;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s,border-color .3s}
+.card:hover,.card:focus-visible{transform:translateY(-6px);border-color:var(--c);box-shadow:0 18px 40px -18px var(--c);outline:none}
+.no{font-weight:800;font-size:14px;color:var(--muted)}
+.ic{display:grid;place-items:center;width:64px;height:64px;border-radius:18px;background:var(--c);color:#fff;font-weight:800;font-size:20px;margin:4px 0}
+.nm{font-weight:800;font-size:clamp(24px,2.4vw,32px);letter-spacing:-.03em}
+.ds{font-size:16px;line-height:1.6;font-weight:500;color:var(--muted);flex:1}
+.go{margin-top:8px;font-weight:800;font-size:15px;color:var(--c)}
+</style></head><body>
+<header><a class="brand" href="../"><span class="mini"><i></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i></i></span>DK microbit</a><a class="pill" href="../#projects">← 메인으로</a></header>
+<main>
+<h1>피지컬컴퓨팅<br>과학실험</h1>
+<p class="lead">마이크로비트와 센서로 만들고 측정하는 과학실험 디지털교재입니다. 실험을 골라 책을 펼쳐 보세요.</p>
+<div class="grid"><a class="card" href="../light/" style="--c:#ff3b30"><span class="no">01</span><span class="ic">R G B</span><span class="nm">빛의 합성 실험</span><span class="ds">RGB 빛을 섞어 새로운 색을 만들어 봅니다.</span><span class="go">교재 열기 →</span></a><a class="card" href="../evaporation/" style="--c:#f59e0b"><span class="no">02</span><span class="ic">H₂O</span><span class="nm">물의 증발 실험</span><span class="ds">온습도 센서로 물이 증발하는 모습을 측정합니다.</span><span class="go">교재 열기 →</span></a><a class="card" href="../conductivity/" style="--c:#2f6bff"><span class="no">03</span><span class="ic">⚡</span><span class="nm">전기전도성 실험</span><span class="ds">도체와 부도체, 물의 전기전도성을 알아봅니다.</span><span class="go">교재 열기 →</span></a><a class="card" href="../cloud/" style="--c:#0d9488"><span class="no">04</span><span class="ic">☁</span><span class="nm">구름 발생 실험</span><span class="ds">수증기가 응결해 구름이 만들어지는 과정을 관찰합니다.</span><span class="go">교재 열기 →</span></a><a class="card" href="../stimulus/" style="--c:#7c4dff"><span class="no">05</span><span class="ic">→</span><span class="nm">자극과 반응 실험</span><span class="ds">자극을 받고 반응하기까지 걸리는 시간을 측정합니다.</span><span class="go">교재 열기 →</span></a></div>
+</main></body></html>
