@@ -94,6 +94,7 @@ html.no-webgl .fb{display:grid}html.no-webgl #gl{display:none}
 @media (prefers-reduced-motion:reduce){
   .track,.scroll b,.ln>span{animation:none}.ln>span{transform:none}.rv{opacity:1;transform:none;transition:none}
 }
+.hero{touch-action:pan-y}body.grabbing,body.grabbing *{cursor:grabbing!important}
 </style>
 </head>
 <body>
@@ -124,7 +125,7 @@ html.no-webgl .fb{display:grid}html.no-webgl #gl{display:none}
     <h1><span class="ln"><span>DK</span></span><span class="ln"><span>microbit</span></span></h1>
     <div class="hero-foot">
       <span>AI · Science · Making</span>
-      <span class="hint">마이크로비트의 <b>A · B 버튼</b>을 눌러 보세요</span>
+      <span class="hint"><b>드래그</b>하면 앞·뒷면이 360° 돌아가고, <b>A · B 버튼</b>을 눌러 보세요</span>
       <span class="scroll">scroll to explore <b>↓</b></span>
     </div>
   </section>
@@ -395,6 +396,68 @@ function start() {
   const order = ['smile', 'heart', 'check', 'arrow', 'square'];
   let cur = 0;
 
+  /* ----- 뒷면 (마이크로비트 V2 뒷면 사진 재현) ----- */
+  const BX = 348, BY = 258, kx = RW / BX, ky = RH / BY;   // 사진 좌표(보드 좌상단 기준) → 캔버스
+  const bcv = document.createElement('canvas'); bcv.width = Math.round(RW * SC); bcv.height = Math.round(RH * SC);
+  const bg2 = bcv.getContext('2d'); bg2.scale(SC * kx, SC * ky);
+  (function (g) {
+    g.save(); g.beginPath(); g.roundRect(0, 0, BX, BY, 14); g.clip();
+    const bgG = g.createLinearGradient(0, 0, BX, BY); bgG.addColorStop(0, '#1b1b21'); bgG.addColorStop(1, '#121216'); g.fillStyle = bgG; g.fillRect(0, 0, BX, BY);
+    // 얇은 회로 선 (분위기)
+    g.strokeStyle = 'rgba(255,255,255,.05)'; g.lineWidth = .8;
+    for (let i = 0; i < 46; i++) { const x = (i * 97) % BX, y = (i * 53) % (BY - 50); g.beginPath(); g.moveTo(x, y); g.lineTo(x + 18 + (i % 4) * 8, y); g.lineTo(x + 30 + (i % 3) * 8, y + 12 + (i % 5) * 4); g.stroke(); }
+    g.fillStyle = 'rgba(255,255,255,.07)'; for (let i = 0; i < 160; i++) { g.beginPath(); g.arc((i * 61.7) % BX, (i * 37.3) % (BY - 40), .9, 0, 7); g.fill(); }
+    // 왼쪽 위 안테나(F C C ID 글자) + QR
+    g.fillStyle = '#8f9199'; g.font = '700 6px Arial'; g.save(); g.translate(7, 108); g.rotate(-Math.PI / 2); g.fillText('FCC ID:2ANFPM0N2000', 0, 0); g.restore();
+    g.strokeStyle = 'rgba(200,200,210,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(14, 70); g.lineTo(14, 14); g.lineTo(60, 14); g.lineTo(60, 28); g.lineTo(22, 28); g.lineTo(22, 52); g.stroke();
+    g.fillStyle = '#f4f4f6'; g.fillRect(82, 4, 36, 34);
+    g.fillStyle = '#111'; for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) if ((i * 7 + j * 13 + i * j) % 3 === 0) g.fillRect(85 + i * 3.4, 7 + j * 3.2, 3, 3);
+    g.fillStyle = '#111'; g.fillRect(84, 6, 9, 9); g.fillRect(107, 6, 9, 9); g.fillRect(84, 27, 9, 9);
+    g.fillStyle = '#f4f4f6'; g.fillRect(86, 8, 5, 5); g.fillRect(109, 8, 5, 5); g.fillRect(86, 29, 5, 5);
+    // 큰 칩(은색 사각, 중앙) 와 왼쪽 검은 칩
+    g.fillStyle = '#0d0d10'; g.fillRect(52, 70, 56, 66); g.strokeStyle = '#4b4c55'; g.lineWidth = 1; g.strokeRect(52, 70, 56, 66);
+    g.fillStyle = '#1e1f26'; g.fillRect(58, 76, 44, 54);
+    g.save(); g.translate(190, 108); g.rotate(Math.PI / 4);
+    const cg = g.createLinearGradient(-30, -30, 30, 30); cg.addColorStop(0, '#9fa1a8'); cg.addColorStop(.5, '#6f7178'); cg.addColorStop(1, '#8a8c93');
+    g.fillStyle = cg; g.fillRect(-31, -31, 62, 62); g.strokeStyle = "#3a3b41"; g.lineWidth = 2; g.strokeRect(-31, -31, 62, 62);
+    g.fillStyle = '#4c4d54'; g.fillRect(-15, -15, 30, 30); g.restore();
+    g.fillStyle = '#d8d9de'; g.beginPath(); g.moveTo(180, 148); g.lineTo(190, 158); g.lineTo(200, 148); g.closePath(); g.fill();
+    // 작은 칩들
+    g.fillStyle = '#c9a66b'; g.fillRect(20, 142, 16, 16); g.strokeStyle = '#6b5636'; g.strokeRect(20, 142, 16, 16);
+    g.fillStyle = '#0d0d10'; g.fillRect(262, 108, 38, 38); g.strokeStyle = '#4b4c55'; g.strokeRect(262, 108, 38, 38);
+    g.fillStyle = '#5b5c63'; for (let i = 0; i < 6; i++) { g.fillRect(262 + i * 6.4, 104, 2.5, 4); g.fillRect(262 + i * 6.4, 146, 2.5, 4); }
+    // USB (은색), 리셋 버튼(검정), 배터리 커넥터(베이지)
+    const mg = g.createLinearGradient(0, 0, 0, 36); mg.addColorStop(0, '#e8e9ed'); mg.addColorStop(1, '#9fa1a8');
+    g.fillStyle = mg; g.beginPath(); g.roundRect(143, -8, 50, 36, 3); g.fill(); g.fillStyle = '#2a2b30'; g.beginPath(); g.roundRect(153, 0, 30, 14, 6); g.fill();
+    g.fillStyle = '#1c1c20'; g.fillRect(218, 2, 42, 36); g.fillStyle = '#0a0a0c'; g.beginPath(); g.arc(239, 20, 13, 0, 7); g.fill(); g.strokeStyle = '#3a3a42'; g.lineWidth = 1.4; g.stroke();
+    g.fillStyle = '#e9d7b4'; g.fillRect(278, -6, 46, 38); g.fillStyle = '#2b2b30'; g.fillRect(286, 4, 30, 22); g.fillStyle = '#bfa66f'; g.fillRect(292, 8, 18, 14);
+    // 글자 (흰색 작은 글씨)
+    g.fillStyle = '#f2f2f4'; g.font = '700 7.2px "Inter Tight",Arial,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+    [['USB', 135], ['BLE ANTENNA', 142], ['MICROPHONE', 150], ['RESET / ⏻', 158], ['BATTERY', 166]].forEach(([t, y]) => g.fillText(t, 150, y + 4));
+    [['SPEAKER', 169], ['PROCESSOR', 177], ['ACCELEROMETER', 185], ['COMPASS', 193], ['PINS', 201]].forEach(([t, y]) => g.fillText(t, 98, y + 10));
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = .8; g.beginPath(); g.moveTo(145, 132); g.lineTo(120, 128); g.moveTo(122, 160); g.lineTo(80, 168); g.moveTo(95, 215); g.lineTo(60, 205); g.stroke();
+    // BBC / micro:bit 로고 / V2
+    g.strokeStyle = '#f2f2f4'; g.lineWidth = 1.4; g.strokeRect(216, 149, 36, 15); g.font = '800 11px Arial'; g.textAlign = 'center'; g.fillText('BBC', 234, 157);
+    g.beginPath(); g.roundRect(234, 172, 34, 18, 9); g.stroke(); g.beginPath(); g.roundRect(240, 177, 22, 8, 4); g.stroke(); g.fillStyle = '#f2f2f4'; [246, 256].forEach(cx => { g.beginPath(); g.arc(cx, 181, 2, 0, 7); g.fill(); });
+    g.font = '800 23px "Inter Tight",Arial,sans-serif'; g.textAlign = 'center'; g.fillText('micro:bit', 258, 207);
+    g.font = '700 7px Arial'; g.textAlign = 'left'; g.fillText('V2', 326, 200);
+    // 오른쪽 가장자리 금색 점
+    g.fillStyle = '#d8b04a'; g.beginPath(); g.roundRect(BX - 7, 168, 5, 20, 2); g.fill(); g.beginPath(); g.roundRect(BX - 7, 196, 5, 14, 2); g.fill();
+    // 아래쪽 금색 단자 (구멍 5개 + 빗살)
+    g.fillStyle = '#d6b255'; g.fillRect(0, 226, BX, 40);
+    [28, 96, 174, 250, 322].forEach(px => { g.beginPath(); g.roundRect(px - 21, 206, 42, 60, [21, 21, 0, 0]); g.fill(); });
+    g.fillStyle = '#6b5122'; for (let x = 4; x < BX; x += 7.7) { if ([28, 96, 174, 250, 322].some(px => Math.abs(x - px) < 24)) continue; g.fillRect(x, 238, 3, 30); }
+    [28, 96, 174, 250, 322].forEach(px => {
+      g.fillStyle = '#f7e9b5'; g.beginPath(); g.arc(px, 224, 17, 0, 7); g.fill(); g.fillStyle = '#e8e8ea'; g.beginPath(); g.arc(px, 224, 12.5, 0, 7); g.fill();
+      g.strokeStyle = '#9a7c2e'; g.lineWidth = 1.2; g.beginPath(); g.arc(px, 224, 17, 0, 7); g.stroke();
+    });
+    g.restore();
+  })(bg2);
+  const btex = new THREE.CanvasTexture(bcv); btex.colorSpace = THREE.SRGBColorSpace; btex.anisotropy = 8;
+  const backFace = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: btex, transparent: true, alphaTest: .5 }));
+  backFace.position.z = -Z - .001; backFace.rotation.y = Math.PI; board.add(backFace);
+  board.traverse(m => { if (m.isMesh && !m.userData.btn) m.userData.btn = 'body'; });
+
   // 바닥 그림자
   const shCv = document.createElement('canvas'); shCv.width = shCv.height = 128;
   const sg = shCv.getContext('2d'), sgr = sg.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -403,6 +466,7 @@ function start() {
   const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shCv), transparent: true, depthWrite: false }));
   shadow.position.z = -1; scene.add(shadow);
 
+  let dragging = false, spinY = 0, spinX = 0, velY = 0, velX = 0;
   /* ----- 화면 크기에 맞춘 배치 ----- */
   let L = {};
   function resize() {
@@ -438,8 +502,9 @@ function start() {
     const s = lerp(L.hs, L.ls, p) * (.55 + .45 * introE);
     root.position.set(lerp(L.hx, L.lx, p), lerp(L.hy, L.ly, p) + float, 0);
     root.scale.setScalar(s);
-    board.rotation.y = -.34 + p * .8 + mx * .38 + (reduce ? 0 : Math.sin(t * .6) * .12);
-    board.rotation.x = -.16 + my * .16 + p * .2;
+        if (!dragging) { spinY += velY; velY *= .9; velX *= .85; spinX += velX; spinX *= .985; }
+    board.rotation.y = spinY - .34 + p * .8 + mx * .38 + (reduce ? 0 : Math.sin(t * .6) * .12);
+    board.rotation.x = spinX - .16 + my * .16 + p * .2;
     board.rotation.z = .03 - p * .08;
 
     shadow.position.set(root.position.x, root.position.y - 1.25 * s - .35, -1);
@@ -463,31 +528,45 @@ function start() {
     requestAnimationFrame(frame);
   }
 
-  /* ----- 버튼 누르기: A=다음 그림, B=이전 그림, 보드를 눌러도 다음 그림 ----- */
+  /* ----- 드래그로 360도 돌리기 + 클릭 동작 ----- */
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   const pick = e => {
     if (L.desk ? scrollY > innerHeight * .5 : scrollY > innerHeight * .3) return null;
     ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, cam);
-    const hit = ray.intersectObject(board, true).find(h => h.object.userData.btn || h.object === face || h.object === plate);
-    return hit ? (hit.object.userData.btn || 'body') : null;
+    const hit = ray.intersectObject(board, true).find(h => h.object.userData.btn);
+    return hit ? hit.object.userData.btn : null;
   };
-  let hoverBtn = null;
+  const isFront = () => Math.cos(board.rotation.y) > .15;
+  let hoverBtn = null, downPos = null, lastX = 0, lastY = 0, moved = 0;
+  addEventListener('pointerdown', e => {
+    if (e.target.closest('a,button')) return;
+    if (!pick(e)) return;
+    dragging = true; moved = 0; lastX = e.clientX; lastY = e.clientY; velY = velX = 0;
+    document.body.classList.add('grabbing'); cursor.textContent = '돌리는 중';
+  });
   addEventListener('pointermove', e => {
+    if (dragging) {
+      const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+      moved += Math.abs(dx) + Math.abs(dy);
+      velY = dx * .012; velX = dy * .008; spinY += velY; spinX = Math.max(-1.1, Math.min(1.1, spinX + velX));
+      hintEl && hintEl.classList.add('done'); return;
+    }
     const h = pick(e);
     if (h === hoverBtn) return; hoverBtn = h;
     if (!state.hover) {
-      if (h) { cursor.classList.add('big'); cursor.textContent = h === 'body' ? '눌러보기' : h; }
+      if (h) { cursor.classList.add('big'); cursor.textContent = '돌려보기'; }
       else { cursor.classList.remove('big'); cursor.textContent = ''; }
     }
   });
-  addEventListener('click', e => {
-    if (e.target.closest('a,button')) return;
-    const h = pick(e); if (!h) return;
-    if (h === 'B') cur = (cur + order.length - 1) % order.length; else cur = (cur + 1) % order.length;
-    const b = pressables.find(x => x.name === h); if (b) { b.down = true; setTimeout(() => b.down = false, 140); }
-    hintEl && hintEl.classList.add('done');
-  });
+  const endDrag = e => {
+    if (!dragging) return; dragging = false; document.body.classList.remove('grabbing');
+    if (hoverBtn) cursor.textContent = '돌려보기';
+    if (moved < 6 && e.type === 'pointerup') { const h = pick(e); if (h) { if (!isFront()) return;
+      if (h === 'B') cur = (cur + order.length - 1) % order.length; else cur = (cur + 1) % order.length;
+      const bb = pressables.find(x => x.name === h); if (bb) { bb.down = true; setTimeout(() => bb.down = false, 140); } } }
+  };
+  addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
   const hintEl = document.querySelector('.hint');
   requestAnimationFrame(frame);
 }
